@@ -57,9 +57,9 @@ class Spellchecker
     transposes = []
     index = 0
     while index < word.length-1 do
-	temp = word.split(/./)
+	temp = word.split('')
 	temp[index], temp[index+1] = temp[index+1], temp[index]
-        transposes.push(temp.join(""))
+        transposes.push(temp.join(''))
 	index += 1
     end
 
@@ -78,9 +78,7 @@ class Spellchecker
     index = 0
     while index < word.length do
         ALPHABET.scan(/./).each do |letter|
-            temp = word
-            temp[index] = letter
-	    replaces.push(temp)
+	    replaces.push(word[0...index] + letter + word[index+1..-1])
 	end
 	index += 1
     end
@@ -90,15 +88,17 @@ class Spellchecker
   
 
   # find known (in dictionary) distance-2 edits of target word.
-  def known_edits2 (word)
+  def known_edits2(word)
     # get every possible distance - 2 edit of the input word. Return those that are in the dictionary.
+    results = []
+    edits1(word).each {|iteration| edits1(iteration).each {|final|results.push(final)}}
+    
+    return known(results.uniq)
   end
 
   #return subset of the input words (argument is an array) that are known by this dictionary
   def known(words)
-    return words.find_all {true } #find all words for which condition is true,
-                                    #you need to figure out this condition
-    
+    return words.find_all {|word| @dictionary.has_key? word} #find all words for which condition is true
   end
 
 
@@ -110,6 +110,17 @@ class Spellchecker
   # returns distance-2 replacements sorted by descending frequency in the model
   # else returns nil
   def correct(word)
+    if @dictionary.has_key? word
+	return [word]
+    else
+	if known(edits1(word)).length > 0
+	    return known(edits1(word)).sort{|a,b| @dictionary[b] <=> @dictionary[a]}
+	elsif known_edits2(word).length > 0
+	    return known_edits2(word).sort{|a,b| @dictionary[b] <=> @dictionary[a]}
+    	else
+	    return nil
+	end
+    end
   end
     
   
